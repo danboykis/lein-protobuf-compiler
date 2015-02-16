@@ -1,4 +1,4 @@
-(ns lein-protobuf.plugin
+(ns lein-protobuf-minimal.plugin
   (:use [leiningen.javac :only [javac]]
         [leiningen.protobuf :only [protobuf *compile-protobuf?*]]
         [robert.hooke :only [add-hook]]))
