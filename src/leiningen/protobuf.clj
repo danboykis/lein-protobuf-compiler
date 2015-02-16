@@ -9,27 +9,11 @@
             [fs.compression :as fs-zip]
             [conch.core :as sh]))
 
-(def cache (io/file (leiningen-home) "cache" "lein-protobuf"))
-(def default-version "2.5.0")
-
-(defn version [project]
-  (or (:protobuf-version project) default-version))
-
-(defn zipfile [project]
-  (io/file cache (format "protobuf-%s.zip" (version project))))
-
-(defn srcdir [project]
-  (io/file cache (str "protobuf-" (version project))))
-
-(defn protoc [project]
-  (io/file (srcdir project) "src" "protoc"))
-
-(defn url [project]
-  (java.net.URL.
-   (format "http://protobuf.googlecode.com/files/protobuf-%s.zip" (version project))))
-
 (defn proto-path [project]
   (io/file (get project :proto-path "resources/proto")))
+
+(defn proto-includes [project]
+  (:protobuf-includes project))
 
 (def ^{:dynamic true} *compile-protobuf?* true)
 
@@ -78,33 +62,16 @@
   (for [file (rest (file-seq dir)) :when (proto-file? file)]
     (.substring (.getPath file) (inc (count (.getPath dir))))))
 
-(defn fetch
-  "Fetch protocol-buffer source and unzip it."
-  [project]
-  (let [zipfile (zipfile project)
-        srcdir  (srcdir project)]
-    (when-not (.exists zipfile)
-      (.mkdirs cache)
-      (println (format "Downloading %s to %s" (.getName zipfile) zipfile))
-      (with-open [stream (.openStream (url project))]
-        (io/copy stream zipfile)))
-    (when-not (.exists srcdir)
-      (println (format "Unzipping %s to %s" zipfile srcdir))
-      (fs-zip/unzip zipfile cache))))
+(defn- canonicalize
+  [fn]
+  (.getAbsoluteFile (io/file fn)))
 
-(defn build-protoc
-  "Compile protoc from source."
-  [project]
-  (let [srcdir (srcdir project)
-        protoc (protoc project)]
-    (when-not (.exists protoc)
-      (fetch project)
-      (fs/chmod "+x" (io/file srcdir "configure"))
-      (fs/chmod "+x" (io/file srcdir "install-sh"))
-      (println "Configuring protoc")
-      (sh/stream-to-out (sh/proc "./configure" :dir srcdir) :out)
-      (println "Running 'make'")
-      (sh/stream-to-out (sh/proc "make" :dir srcdir) :out))))
+(defn- include
+  [fn]
+  (str "-I" (canonicalize fn)))
+
+(defn proto-include-args [project]
+  (map include (proto-includes project)))
 
 (defn compile-protobuf
   "Create .java and .class files from the provided .proto files."
@@ -121,10 +88,11 @@
            (.mkdirs dest)
            (extract-dependencies project proto-path protos proto-dest)
            (doseq [proto protos]
-             (let [args (into [(.getPath (protoc project)) proto
-                               (str "--java_out=" (.getAbsoluteFile dest)) "-I."]
-                              (map #(str "-I" (.getAbsoluteFile %))
-                                   [proto-dest proto-path]))]
+             (let [args (list* "protoc" proto (str "--java_out=" (.getAbsoluteFile dest))
+                               "-I."
+                               (include proto-dest)
+                               (include proto-path)
+                               (proto-include-args project))]
                (println " > " (join " " args))
                (let [result (apply sh/proc (concat args [:dir proto-path]))]
                  (when-not (= (sh/exit-code result) 0)
@@ -133,26 +101,9 @@
                     :java-source-paths [(.getPath dest)]
                     :javac-options ["-Xlint:none"])))))))
 
-(defn compile-google-protobuf
-  "Compile com.google.protobuf.*"
-  [project]
-  (fetch project)
-  (let [srcdir (srcdir project)
-        descriptor "google/protobuf/descriptor.proto"
-        src (io/file srcdir "src" descriptor)
-        dest (io/file (proto-path project) descriptor)]
-    (.mkdirs (.getParentFile dest))
-    (when (> (modtime src) (modtime dest))
-      (io/copy src dest))
-    (compile-protobuf project [descriptor]
-                      (io/file srcdir "java" "src" "main" "java"))))
-
 (defn protobuf
   "Task for compiling protobuf libraries."
   [project & files]
   (let [files (or (seq files)
                   (proto-files (proto-path project)))]
-    (build-protoc project)
-    (when (and (= "protobuf" (:name project)))
-      (compile-google-protobuf project))
     (compile-protobuf project files)))
