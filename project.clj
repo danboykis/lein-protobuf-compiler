@@ -1,4 +1,4 @@
-(defproject lein-protobuf-minimal "0.4.4-SNAPSHOT"
+(defproject lein-protobuf-minimal "0.4.5-SNAPSHOT"
   :description       "Leiningen plugin for compiling protocol buffers."
   :license           {:name "Eclipse Public License"
                       :url "http://www.eclipse.org/legal/epl-v10.html"}
