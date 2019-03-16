@@ -1,9 +1,11 @@
-(defproject lein-protobuf-minimal-mg "0.4.5"
+(defproject com.danboykis/lein-protobuf-compiler "0.0.1"
   :description       "Leiningen plugin for compiling protocol buffers."
   :license           {:name "Eclipse Public License"
                       :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :url               "https://github.com/markusgustavssonking/lein-protobuf-minimal"
-  :dependencies      [[fs         "1.3.3"]
-                      [conch      "0.3.1"]]
+  :url               "https://github.com/danboykis/lein-protobuf-compiler"
+  :dependencies      [[me.raynes/fs "1.4.6" :exclusions [org.clojure/clojure]]
+                      [me.raynes/conch "0.8.0" :exclusions [org.clojure/clojure]]]
   :eval-in-leiningen true
-  :checksum-deps     true)
+  :checksum-deps     true
+
+  :repositories {"clojars.org" {:url "https://repo.clojars.org"}})
