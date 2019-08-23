@@ -21,7 +21,7 @@
   {:pre [(coll? proto-paths)]}
   (into [] (map io/file) proto-paths))
 
-(def ^{:dynamic true} *compile-protobuf?* true)
+(def compile-protobuf? (volatile! true))
 
 (defn dir! [f]
   (when-not (.exists f)
@@ -79,13 +79,13 @@
 (defn compile-java
   "Create .class files from the generated .java files"
   [project]
-  (binding [*compile-protobuf?* false]
-    (let [target (io/file (:target-path project))
-          dest   (dir! (io/file target "protosrc"))]
-      (.mkdirs dest)
-      (javac (assoc project
-                    :java-source-paths [(.getPath dest)]
-                    :javac-options ["-Xlint:none"])))))
+  (vreset! compile-protobuf? false)
+  (let [target (io/file (:target-path project))
+        dest   (dir! (io/file target "protosrc"))]
+    (.mkdirs dest)
+    (javac (assoc project
+                  :java-source-paths [(.getPath dest)]
+                  :javac-options ["-Xlint:none"]))))
 
 (defn protobuf
   "Task for compiling protobuf libraries."
