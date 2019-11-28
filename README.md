@@ -1,7 +1,7 @@
 # lein-protobuf-compiler
 
 ```
-[com.danboykis/lein-protobuf-compiler "0.0.1"]
+[com.danboykis/lein-protobuf-compiler "0.0.2"]
 ```
 
 This is a stripped-down version of [lein-protobuf](https://github.com/flatland/lein-protobuf).
