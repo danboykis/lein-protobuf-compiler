@@ -83,9 +83,10 @@
   (let [target (io/file (:target-path project))
         dest   (dir! (io/file target "protosrc"))]
     (.mkdirs dest)
-    (javac (assoc project
-                  :java-source-paths [(.getPath dest)]
-                  :javac-options ["-Xlint:none"]))))
+    (javac
+      (-> project
+          (update :javac-options (fnil conj []) "-Xlint:none")
+          (assoc :java-source-paths [(.getPath dest)])))))
 
 (defn protobuf
   "Task for compiling protobuf libraries."
